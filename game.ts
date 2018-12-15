@@ -1,3 +1,4 @@
+let gameOver = false
 const canvas = document.querySelector('canvas')
 const ctx = canvas.getContext('2d')
 const canvasSize = canvas.width
@@ -8,14 +9,12 @@ const player = {
   y: canvasSize - playerHeight * 2,
   width: playerWidth,
   height: playerHeight,
-  color: 'cyan',
+  color: 'green',
   moveSpeed: 50,
-  gun: {
-    size: 15,
-    color: '#ccc'
-  }
+  hp: 3,
+  gun: {size: 15, color: '#ccc'}
 }
-const Barrier = x => ({
+const Barrier = (x: number) => ({
   x,
   y: canvasSize - playerHeight * 4,
   width: playerWidth,
@@ -25,13 +24,13 @@ const Barrier = x => ({
 })
 const barriers = [Barrier(75), Barrier(325)]
 
-const Bullet = (x, y, vy) => ({
+const Bullet = (x: number, y: number, vy: number, color: string) => ({
   x,
   y,
   vy,
   width: 4,
   height: 4,
-  color: 'white'
+  color
 })
 let bullets = []
 let bulletCooldown = false
@@ -40,7 +39,7 @@ const enemies = []
 const enemyHeight = playerHeight
 const enemyWidth = playerWidth / 2
 const enemySpeed = 2
-const Enemy = (x, y, vx) => ({
+const Enemy = (x: number, y: number, vx: number) => ({
   x,
   y,
   vx,
@@ -51,6 +50,7 @@ const Enemy = (x, y, vx) => ({
 })
 const enemyRows = 3
 const enemiesPerRow = 5
+let enemiesCount = enemyRows * enemiesPerRow
 for (let i = 0; i < enemyRows; i++) {
   enemies[i] = []
   for (let j = 0; j < enemiesPerRow; j++) {
@@ -88,14 +88,7 @@ const renderBullets = () => {
           bullet.vy > 0 && horizontalCollision && bullet.y > y - bullet.height) {
         bullets.splice(bi, 1)
         barrier.hp--
-        switch (barrier.hp) {
-          case 2:
-            barrier.color = 'yellow'
-            break
-          case 1:
-            barrier.color = 'red'
-            break
-        }
+        barrier.color = barrier.hp === 2 ? 'yellow' : 'red'
         if (barrier.hp === 0) {
           barriers.splice(bj, bj+1)
         }
@@ -106,15 +99,29 @@ const renderBullets = () => {
       for (let ej = 0; ej < enemies[ei].length; ej++) {
         const enemy = enemies[ei][ej]
         const {x, y, width, height} = enemy
-        if (bullet.x > x && bullet.x < x + width && bullet.y < y + height) {
-          bullets.splice(bi, bi + 1)
+        if (bullet.vy < 0 && bullet.x > x && bullet.x < x + width && bullet.y < y + height) {
+          bullets.splice(bi, 1)
           enemy.hp--
           if (enemy.hp === 0) {
             enemies[ei].splice(ej, ej+1)
+            enemiesCount--
+            if (enemiesCount === 0) {
+              gameOver = true
+            }
           }
           return
         }
       }
+    }
+    if (bullet.x > player.x && bullet.x < player.x + player.width && bullet.y > player.y && bullet.y < player.y + playerHeight) {
+      player.hp--
+      bullets.splice(bi, 1)
+      player.color = player.hp === 1 ? 'red' : 'yellow'
+      if (player.hp === 0) {
+        gameOver = true
+        return
+      }
+      return
     }
   }
 }
@@ -130,14 +137,15 @@ const renderEnemies = () => {
       if (enemy.x > canvasSize - enemy.width || enemy.x+enemy.width < enemy.width) {
         enemy.vx = -enemy.vx
       }
-      if (j === enemiesPerRow-1 && Math.random() < .01) {
-        bullets.push(Bullet(x+enemyWidth/2, y+enemyHeight+10, .5))
+      if (Math.random() < .005) {
+        bullets.push(Bullet(x+enemyWidth/2, y+enemyHeight+10, .5, 'red'))
       }
     }
   }
 }
 
 const render = () => {
+  if (gameOver) return
   ctx.clearRect(0, 0, canvasSize, canvasSize)
   renderPlayer()
   renderBarriers()
@@ -162,7 +170,7 @@ document.addEventListener('keypress', ({key}) => {
       }
       bulletCooldown = true
       setTimeout(() => bulletCooldown = false, 1000)
-      bullets.push(Bullet(player.x + player.width / 2 - 2, player.y - player.height, -4))
+      bullets.push(Bullet(player.x + player.width / 2 - 2, player.y - player.height, -4, 'white'))
       break
   }
 })
