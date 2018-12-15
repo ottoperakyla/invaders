@@ -17,10 +17,11 @@ const player = {
 }
 const Barrier = x => ({
   x,
-  y: canvasSize - playerHeight * 8,
+  y: canvasSize - playerHeight * 4,
   width: playerWidth,
   height: playerHeight,
-  color: 'green'
+  color: 'green',
+  hp: 3
 })
 const barriers = [Barrier(75), Barrier(325)]
 
@@ -53,15 +54,29 @@ const renderBarriers = () => {
 }
 
 const renderBullets = () => {
-  for (let bullet of bullets) {
+  for (let i = 0; i < bullets.length; i++) {
+    const bullet = bullets[i]
     const {x, y, width, height, vy, color} = bullet
     ctx.fillStyle = color
     ctx.fillRect(x, y, width, height)
     bullet.y += vy
-    for (let {x, y, width, height} of barriers) {
+    for (let j = 0; j < barriers.length; j++) {
+      const barrier = barriers[j]
+      const {x, y, width, height} = barrier
       if (bullet.x > x && bullet.x < x + width && bullet.y < y + height) {
-        // TODO: do bullets splice or something instead of this
-        bullet.width = bullet.height = 0
+        bullets.splice(i, i + 1)
+        barrier.hp--
+        switch (barrier.hp) {
+          case 2:
+            barrier.color = 'yellow'
+            break
+          case 1:
+            barrier.color = 'red'
+            break
+        }
+        if (barrier.hp === 0) {
+          barriers.splice(j, j+1)
+        }
       }
     }
   }
@@ -90,9 +105,7 @@ document.addEventListener('keypress', ({key}) => {
         break
       }
       bulletCooldown = true
-      setTimeout(() => {
-        bulletCooldown = false
-      }, 1000)
+      setTimeout(() => bulletCooldown = false, 1000)
       bullets.push(Bullet(player.x + player.width / 2 - 2, player.y - player.height, -4))
       break
   }

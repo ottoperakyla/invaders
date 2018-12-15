@@ -126,10 +126,11 @@ var player = {
 var Barrier = function Barrier(x) {
   return {
     x: x,
-    y: canvasSize - playerHeight * 8,
+    y: canvasSize - playerHeight * 4,
     width: playerWidth,
     height: playerHeight,
-    color: 'green'
+    color: 'green',
+    hp: 3
   };
 };
 
@@ -177,8 +178,8 @@ var renderBarriers = function renderBarriers() {
 };
 
 var renderBullets = function renderBullets() {
-  for (var _i = 0, bullets_1 = bullets; _i < bullets_1.length; _i++) {
-    var bullet = bullets_1[_i];
+  for (var i = 0; i < bullets.length; i++) {
+    var bullet = bullets[i];
     var x = bullet.x,
         y = bullet.y,
         width = bullet.width,
@@ -189,16 +190,30 @@ var renderBullets = function renderBullets() {
     ctx.fillRect(x, y, width, height);
     bullet.y += vy;
 
-    for (var _a = 0, barriers_2 = barriers; _a < barriers_2.length; _a++) {
-      var _b = barriers_2[_a],
-          x_1 = _b.x,
-          y_1 = _b.y,
-          width_1 = _b.width,
-          height_1 = _b.height;
+    for (var j = 0; j < barriers.length; j++) {
+      var barrier = barriers[j];
+      var x_1 = barrier.x,
+          y_1 = barrier.y,
+          width_1 = barrier.width,
+          height_1 = barrier.height;
 
       if (bullet.x > x_1 && bullet.x < x_1 + width_1 && bullet.y < y_1 + height_1) {
-        // TODO: do bullets splice or something instead of this
-        bullet.width = bullet.height = 0;
+        bullets.splice(i, i + 1);
+        barrier.hp--;
+
+        switch (barrier.hp) {
+          case 2:
+            barrier.color = 'yellow';
+            break;
+
+          case 1:
+            barrier.color = 'red';
+            break;
+        }
+
+        if (barrier.hp === 0) {
+          barriers.splice(j, j + 1);
+        }
       }
     }
   }
@@ -232,7 +247,7 @@ document.addEventListener('keypress', function (_a) {
 
       bulletCooldown = true;
       setTimeout(function () {
-        bulletCooldown = false;
+        return bulletCooldown = false;
       }, 1000);
       bullets.push(Bullet(player.x + player.width / 2 - 2, player.y - player.height, -4));
       break;
