@@ -37,6 +37,26 @@ let bullets = []
 let bulletCooldown = false
 
 const enemies = []
+const enemyHeight = playerHeight
+const enemyWidth = playerWidth / 2
+const enemySpeed = 2
+const Enemy = (x, y, vx) => ({
+  x,
+  y,
+  vx,
+  width: enemyWidth,
+  height: enemyHeight,
+  color: 'red',
+  hp: 1
+})
+const enemyRows = 3
+const enemiesPerRow = 5
+for (let i = 0; i < enemyRows; i++) {
+  enemies[i] = []
+  for (let j = 0; j < enemiesPerRow; j++) {
+    enemies[i].push(Enemy(i * (enemyWidth*2), j * (enemyHeight*2)+20, enemySpeed))
+  }
+}
 
 const renderPlayer = () => {
   const {x, y, width, height, gun, color} = player
@@ -54,17 +74,19 @@ const renderBarriers = () => {
 }
 
 const renderBullets = () => {
-  for (let i = 0; i < bullets.length; i++) {
-    const bullet = bullets[i]
+  for (let bi = 0; bi < bullets.length; bi++) {
+    const bullet = bullets[bi]
     const {x, y, width, height, vy, color} = bullet
     ctx.fillStyle = color
     ctx.fillRect(x, y, width, height)
     bullet.y += vy
-    for (let j = 0; j < barriers.length; j++) {
-      const barrier = barriers[j]
+    for (let bj = 0; bj < barriers.length; bj++) {
+      const barrier = barriers[bj]
       const {x, y, width, height} = barrier
-      if (bullet.x > x && bullet.x < x + width && bullet.y < y + height) {
-        bullets.splice(i, i + 1)
+      const horizontalCollision = bullet.x > x && bullet.x < x + width
+      if ((bullet.vy < 0 && horizontalCollision && bullet.y < y + height) ||
+          bullet.vy > 0 && horizontalCollision && bullet.y > y - bullet.height) {
+        bullets.splice(bi, 1)
         barrier.hp--
         switch (barrier.hp) {
           case 2:
@@ -75,8 +97,41 @@ const renderBullets = () => {
             break
         }
         if (barrier.hp === 0) {
-          barriers.splice(j, j+1)
+          barriers.splice(bj, bj+1)
         }
+        return
+      }
+    }
+    for (let ei = 0; ei < enemies.length; ei++) {
+      for (let ej = 0; ej < enemies[ei].length; ej++) {
+        const enemy = enemies[ei][ej]
+        const {x, y, width, height} = enemy
+        if (bullet.x > x && bullet.x < x + width && bullet.y < y + height) {
+          bullets.splice(bi, bi + 1)
+          enemy.hp--
+          if (enemy.hp === 0) {
+            enemies[ei].splice(ej, ej+1)
+          }
+          return
+        }
+      }
+    }
+  }
+}
+
+const renderEnemies = () => {
+  for (let i = 0; i < enemies.length; i++) {
+    for (let j = 0; j < enemies[i].length; j++) {
+      const enemy = enemies[i][j]
+      const {x, y, vx, width, height, color} = enemy
+      ctx.fillStyle = color
+      ctx.fillRect(x, y, width, height)
+      enemy.x += vx
+      if (enemy.x > canvasSize - enemy.width || enemy.x+enemy.width < enemy.width) {
+        enemy.vx = -enemy.vx
+      }
+      if (j === enemiesPerRow-1 && Math.random() < .01) {
+        bullets.push(Bullet(x+enemyWidth/2, y+enemyHeight+10, .5))
       }
     }
   }
@@ -86,6 +141,7 @@ const render = () => {
   ctx.clearRect(0, 0, canvasSize, canvasSize)
   renderPlayer()
   renderBarriers()
+  renderEnemies()
   renderBullets()
   requestAnimationFrame(render)
 }
